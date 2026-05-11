@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SMUGGLR — Unicode Steganography Toolkit</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#08090f;--bg2:#0e1019;--bg3:#14161f;--bg4:#1a1c28;
+  --border:#22253a;--border2:#2e3250;
+  --text:#dde2ff;--muted:#5a6090;--dim:#383d60;
+  --accent:#4ff0b7;--accent2:#7c6aff;--accent3:#ff6b6b;
+  --warn:#ffb930;--info:#4fd0ff;
+  --card-shadow:0 2px 20px rgba(79,240,183,0.06);
+}
+[data-theme="light"]{
+  --bg:#f0f1f7;--bg2:#ffffff;--bg3:#e8e9f2;--bg4:#dfe0ec;
+  --border:#c8cadf;--border2:#b0b3d0;
+  --text:#1a1c2e;--muted:#6b6e90;--dim:#a0a3c0;
+  --accent:#0a8c5e;--accent2:#5a3fcf;--accent3:#d63030;
+  --warn:#c07800;--info:#0080b0;
+  --card-shadow:0 2px 20px rgba(0,0,0,0.08);
+}
+[data-theme="eye"]{
+  --bg:#111000;--bg2:#191800;--bg3:#211f00;--bg4:#2a2700;
+  --border:#332f00;--border2:#454000;
+  --text:#fff8b0;--muted:#7a7330;--dim:#3d3900;
+  --accent:#e8e000;--accent2:#ff8c00;--accent3:#ff4444;
+  --warn:#ff8800;--info:#88e000;
+  --card-shadow:0 2px 20px rgba(232,224,0,0.06);
+}
+
+*{box-sizing:border-box;margin:0;padding:0;}
+
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'DM Sans',sans-serif;min-height:100vh;
+  line-height:1.6;
+}
+
+.scanlines{
+  position:fixed;inset:0;pointer-events:none;z-index:9998;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.025) 3px,rgba(0,0,0,0.025) 4px);
+}
+
+/* ── Header ── */
+header{
+  background:var(--bg2);border-bottom:1px solid var(--border);
+  padding:14px 28px;display:flex;align-items:center;
+  justify-content:space-between;position:sticky;top:0;z-index:100;
+  backdrop-filter:blur(12px);
+}
+
+.logo-wrap{ display:flex;flex-direction:column; }
+
+.logo{
+  font-family:'Orbitron',monospace;font-weight:900;
+  font-size:1.7rem;letter-spacing:0.08em;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;position:relative;
+  animation:glitch 7s infinite;
+}
+
+.logo-tag{
+  font-family:'Share Tech Mono',monospace;font-size:0.62rem;
+  color:var(--muted);letter-spacing:0.2em;text-transform:uppercase;
+  margin-top:-2px;
+}
+
+.header-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+
+.credit{
+  font-family:'Share Tech Mono',monospace;font-size:0.6rem;
+  color:var(--dim);letter-spacing:0.08em;margin-right:6px;
+}
+
+.theme-grp{display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+
+.theme-btn{
+  background:none;border:none;color:var(--muted);
+  padding:5px 10px;cursor:pointer;font-family:'DM Sans',sans-serif;
+  font-size:0.72rem;transition:all 0.15s;white-space:nowrap;
+}
+.theme-btn:hover{background:var(--bg3);color:var(--text);}
+.theme-btn.active{background:var(--bg4);color:var(--accent);}
+
+/* ── Technique Selector ── */
+.tech-bar{
+  background:var(--bg2);border-bottom:1px solid var(--border);
+  padding:0 28px;display:flex;align-items:stretch;gap:0;
+  overflow-x:auto;scrollbar-width:thin;
+}
+.tech-bar::-webkit-scrollbar{height:3px;}
+.tech-bar::-webkit-scrollbar-thumb{background:var(--border2);}
+
+.tech-btn{
+  background:none;border:none;border-bottom:2px solid transparent;
+  color:var(--muted);padding:12px 16px;cursor:pointer;
+  font-family:'Share Tech Mono',monospace;font-size:0.72rem;
+  letter-spacing:0.06em;white-space:nowrap;
+  transition:all 0.15s;display:flex;align-items:center;gap:7px;
+}
+.tech-btn:hover{color:var(--text);}
+.tech-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+.tech-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--dim);transition:background 0.15s;
+}
+.tech-btn.active .tech-dot{background:var(--accent);}
+
+/* ── Layout ── */
+.main{max-width:880px;margin:0 auto;padding:28px;}
+
+.panel{display:none;animation:fadeIn 0.2s ease;}
+.panel.active{display:block;}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+
+/* ── Mode Info ── */
+.mode-info{
+  background:var(--bg2);border:1px solid var(--border);
+  border-left:3px solid var(--accent);
+  border-radius:0 8px 8px 0;padding:14px 18px;
+  margin-bottom:22px;
+}
+.mode-info h3{
+  font-family:'Share Tech Mono',monospace;font-size:0.7rem;
+  color:var(--accent);letter-spacing:0.15em;text-transform:uppercase;
+  margin-bottom:6px;
+}
+.mode-info p{font-size:0.82rem;color:var(--muted);line-height:1.7;}
+.mode-info code{
+  font-family:'Share Tech Mono',monospace;color:var(--info);
+  background:var(--bg3);padding:1px 5px;border-radius:3px;
+  font-size:0.78rem;
+}
+
+/* ── Two-col grid ── */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.full{grid-column:1/-1;}
+
+/* ── Field ── */
+.field{display:flex;flex-direction:column;gap:6px;}
+
+.field-label{
+  font-family:'Share Tech Mono',monospace;font-size:0.65rem;
+  color:var(--muted);letter-spacing:0.14em;text-transform:uppercase;
+  display:flex;align-items:center;justify-content:space-between;
+}
+
+textarea,input[type=text]{
+  background:var(--bg2);border:1px solid var(--border);
+  color:var(--text);padding:12px 14px;border-radius:8px;
+  font-family:'Share Tech Mono',monospace;font-size:0.83rem;
+  resize:vertical;width:100%;line-height:1.55;
+  transition:border-color 0.2s;
+}
+textarea{min-height:110px;}
+textarea:focus,input[type=text]:focus{
+  outline:none;border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(79,240,183,0.08);
+}
+
+/* Sliders */
+.slider-row{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.slider-row label{
+  font-family:'Share Tech Mono',monospace;font-size:0.68rem;
+  color:var(--muted);letter-spacing:0.1em;white-space:nowrap;
+}
+input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
+.rval{
+  font-family:'Share Tech Mono',monospace;font-size:0.8rem;
+  color:var(--accent);min-width:28px;text-align:right;
+}
+
+/* Checkbox */
+.chk-row{display:flex;align-items:center;gap:8px;margin-bottom:14px;}
+.chk-row label{font-size:0.8rem;color:var(--muted);cursor:pointer;}
+input[type=checkbox]{accent-color:var(--accent);}
+
+/* ── Buttons ── */
+.btn-row{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;align-items:center;}
+
+.btn{
+  padding:9px 20px;border-radius:7px;border:1px solid var(--border2);
+  font-family:'Share Tech Mono',monospace;font-size:0.75rem;
+  letter-spacing:0.06em;cursor:pointer;
+  transition:all 0.15s;display:flex;align-items:center;gap:6px;
+  white-space:nowrap;
+}
+.btn-primary{
+  background:var(--accent);border-color:var(--accent);
+  color:#05120d;font-size:0.8rem;font-family:'DM Sans',sans-serif;
+  font-weight:600;
+}
+.btn-primary:hover{filter:brightness(1.1);transform:translateY(-1px);}
+.btn-primary:active{transform:scale(0.98);}
+
+.btn-secondary{background:var(--bg3);color:var(--text);}
+.btn-secondary:hover{border-color:var(--accent2);color:var(--accent2);}
+
+.btn-ghost{background:none;color:var(--muted);border-color:transparent;}
+.btn-ghost:hover{color:var(--text);}
+
+.btn-decode{background:var(--bg3);color:var(--accent2);border-color:var(--accent2);}
+.btn-decode:hover{background:var(--accent2);color:#fff;}
+
+/* ── Output ── */
+.output-box{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:8px;overflow:hidden;margin-bottom:16px;
+}
+.output-hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 14px;background:var(--bg3);
+  border-bottom:1px solid var(--border);
+}
+.output-hdr-label{
+  font-family:'Share Tech Mono',monospace;font-size:0.65rem;
+  color:var(--muted);letter-spacing:0.12em;text-transform:uppercase;
+  display:flex;align-items:center;gap:8px;
+}
+.output-text{
+  padding:14px;font-family:'Share Tech Mono',monospace;font-size:0.82rem;
+  color:var(--accent);line-height:1.6;min-height:72px;
+  word-break:break-all;white-space:pre-wrap;
+}
+.output-text.muted-out{color:var(--muted);}
+
+.status-chip{
+  font-family:'Share Tech Mono',monospace;font-size:0.65rem;
+  padding:3px 9px;border-radius:20px;border:1px solid var(--border);
+  color:var(--muted);
+}
+.status-chip.ok{border-color:var(--accent);color:var(--accent);}
+.status-chip.err{border-color:var(--accent3);color:var(--accent3);}
+.status-chip.warn{border-color:var(--warn);color:var(--warn);}
+
+/* ── Inspector ── */
+.insp-result{margin-top:16px;display:flex;flex-direction:column;gap:10px;}
+
+.insp-card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:8px;padding:14px 16px;
+}
+.insp-card.found{border-left:3px solid var(--warn);}
+.insp-card.clean{border-left:3px solid var(--accent);}
+
+.insp-title{
+  font-family:'Share Tech Mono',monospace;font-size:0.7rem;
+  letter-spacing:0.1em;text-transform:uppercase;
+  display:flex;align-items:center;gap:8px;margin-bottom:8px;
+}
+.badge{
+  font-size:0.6rem;padding:2px 7px;border-radius:4px;
+  background:var(--warn);color:#1a1000;font-weight:700;
+}
+.badge.ok{background:var(--accent);color:#03120d;}
+.insp-decoded{
+  font-family:'Share Tech Mono',monospace;font-size:0.78rem;
+  color:var(--accent);margin-top:6px;padding:8px 10px;
+  background:var(--bg3);border-radius:5px;word-break:break-all;
+}
+.insp-info{font-size:0.78rem;color:var(--muted);margin-top:4px;}
+
+/* ── Homoglyph picker ── */
+.glyph-row{
+  display:flex;flex-wrap:wrap;gap:6px;
+  padding:10px 0;border-top:1px solid var(--border);margin-top:10px;
+}
+.glyph-pill{
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:5px;padding:4px 10px;
+  font-family:'Share Tech Mono',monospace;font-size:0.78rem;
+  cursor:pointer;transition:all 0.12s;color:var(--text);
+}
+.glyph-pill:hover{border-color:var(--accent2);color:var(--accent2);}
+
+/* ── Toast ── */
+.toast{
+  position:fixed;bottom:24px;right:24px;z-index:9999;
+  background:var(--bg2);border:1px solid var(--accent);
+  color:var(--accent);padding:10px 18px;border-radius:8px;
+  font-family:'Share Tech Mono',monospace;font-size:0.75rem;
+  transform:translateY(80px);opacity:0;
+  transition:all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+  pointer-events:none;display:flex;align-items:center;gap:8px;
+}
+.toast.show{transform:translateY(0);opacity:1;}
+
+/* ── Footer ── */
+footer{
+  text-align:center;padding:24px 28px;
+  border-top:1px solid var(--border);margin-top:40px;
+}
+.footer-credit{
+  font-family:'Share Tech Mono',monospace;font-size:0.65rem;
+  color:var(--dim);letter-spacing:0.12em;
+}
+.footer-credit span{color:var(--accent);}
+
+/* ── Responsive ── */
+@media(max-width:600px){
+  .grid2{grid-template-columns:1fr;}
+  header{padding:12px 16px;flex-wrap:wrap;gap:10px;}
+  .main{padding:16px;}
+  .tech-bar{padding:0 16px;}
+  .tech-btn{padding:10px 10px;font-size:0.65rem;}
+}
+
+/* ── Glitch ── */
+@keyframes glitch{
+  0%,88%,100%{text-shadow:none;}
+  90%{text-shadow:-2px 0 var(--accent3);}
+  92%{text-shadow:2px 0 var(--accent2);}
+  94%{text-shadow:none;}
+}
+</style>
+</head>
+<body>
+
+<div class="scanlines"></div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo-wrap">
+    <div class="logo">SMUGGLR</div>
+    <div class="logo-tag">Unicode &amp; Emoji Steganography Toolkit</div>
+  </div>
+  <div class="header-right">
+    <span class="credit">Made By Aryan Giri | giriaryan694-a11y</span>
+    <div class="theme-grp">
+      <button class="theme-btn active" onclick="setTheme('dark',this)">🌑 Dark</button>
+      <button class="theme-btn" onclick="setTheme('light',this)">☀️ Light</button>
+      <button class="theme-btn" onclick="setTheme('eye',this)">👁 Eye-Saver</button>
+    </div>
+  </div>
+</header>
+
+<!-- TECHNIQUE SELECTOR -->
+<nav class="tech-bar">
+  <button class="tech-btn active" onclick="switchTab('zwsp',this)" id="tbtn-zwsp">
+    <span class="tech-dot"></span>Zero-Width
+  </button>
+  <button class="tech-btn" onclick="switchTab('tag',this)" id="tbtn-tag">
+    <span class="tech-dot"></span>Tag Block
+  </button>
+  <button class="tech-btn" onclick="switchTab('homo',this)" id="tbtn-homo">
+    <span class="tech-dot"></span>Homoglyphs
+  </button>
+  <button class="tech-btn" onclick="switchTab('zalgo',this)" id="tbtn-zalgo">
+    <span class="tech-dot"></span>Zalgo
+  </button>
+  <button class="tech-btn" onclick="switchTab('ws',this)" id="tbtn-ws">
+    <span class="tech-dot"></span>Whitespace Cipher
+  </button>
+  <button class="tech-btn" onclick="switchTab('inspector',this)" id="tbtn-inspector">
+    <span class="tech-dot"></span>Inspector
+  </button>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+
+<!-- ══════════════ ZERO-WIDTH ══════════════ -->
+<div class="panel active" id="panel-zwsp">
+  <div class="mode-info">
+    <h3>Zero-Width Character Steganography</h3>
+    <p>Encodes your secret as invisible binary using <code>U+200B</code> (Zero-Width Space = 0) and <code>U+200C</code> (Zero-Width Non-Joiner = 1), stitched into cover text. Output looks 100% normal — paste it anywhere.</p>
+  </div>
+
+  <div class="grid2">
+    <div class="field">
+      <div class="field-label">Cover Text <span style="color:var(--dim)">// visible</span></div>
+      <textarea id="zw-cover" placeholder="This is normal, visible text…">Hello, nothing suspicious here!</textarea>
+    </div>
+    <div class="field">
+      <div class="field-label">Secret Message <span style="color:var(--dim)">// hidden</span></div>
+      <textarea id="zw-secret" placeholder="Your hidden message…">Meet at midnight.</textarea>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="zwEncode()">▶ Encode &amp; Hide</button>
+    <button class="btn btn-decode" onclick="zwDecode()">◀ Extract Hidden</button>
+    <button class="btn btn-ghost" onclick="clearAll('zw-cover','zw-secret','zw-out')">✕ Clear</button>
+  </div>
+
+  <div class="output-box">
+    <div class="output-hdr">
+      <div class="output-hdr-label">
+        Output <span id="zw-chip" class="status-chip"></span>
+      </div>
+      <button class="btn btn-ghost" onclick="copyOut('zw-out')">⎘ Copy</button>
+    </div>
+    <div class="output-text muted-out" id="zw-out">// encoded output appears here</div>
+  </div>
+</div>
+
+<!-- ══════════════ TAG BLOCK ══════════════ -->
+<div class="panel" id="panel-tag">
+  <div class="mode-info">
+    <h3>Unicode Tag Block (Emoji Smuggling)</h3>
+    <p>Uses the <code>U+E0000–U+E007F</code> Unicode Tag Block — invisible characters originally for emoji flag sequences. Virtually invisible in all chat apps, browsers, and document editors. This is how "AI slop" watermarking works under the hood.</p>
+  </div>
+
+  <div class="grid2">
+    <div class="field">
+      <div class="field-label">Carrier Text / Emoji</div>
+      <textarea id="tag-cover" placeholder="Any text or emoji…">🌐 Check out this cool article!</textarea>
+    </div>
+    <div class="field">
+      <div class="field-label">Secret Message</div>
+      <textarea id="tag-secret" placeholder="Hidden payload…">Agent007</textarea>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="tagEncode()">▶ Smuggle Into Text</button>
+    <button class="btn btn-decode" onclick="tagDecode()">◀ Extract Tags</button>
+    <button class="btn btn-ghost" onclick="clearAll('tag-cover','tag-secret','tag-out')">✕ Clear</button>
+  </div>
+
+  <div class="output-box">
+    <div class="output-hdr">
+      <div class="output-hdr-label">
+        Output <span id="tag-chip" class="status-chip"></span>
+      </div>
+      <button class="btn btn-ghost" onclick="copyOut('tag-out')">⎘ Copy</button>
+    </div>
+    <div class="output-text muted-out" id="tag-out">// smuggled output appears here</div>
+  </div>
+</div>
+
+<!-- ══════════════ HOMOGLYPHS ══════════════ -->
+<div class="panel" id="panel-homo">
+  <div class="mode-info">
+    <h3>Homoglyph Substitution</h3>
+    <p>Replaces Latin letters with visually identical Unicode characters from Cyrillic, Greek, and other scripts. Text looks normal to the human eye but is technically different — useful for bypassing keyword filters or watermarking text invisibly.</p>
+  </div>
+
+  <div class="grid2">
+    <div class="field full">
+      <div class="field-label">Input Text</div>
+      <textarea id="homo-in" placeholder="Type text to encode with lookalike chars…">Hello World! This text looks normal.</textarea>
+    </div>
+  </div>
+
+  <div class="chk-row">
+    <input type="checkbox" id="homo-full" checked>
+    <label for="homo-full">Full substitution (all mappable chars)</label>
+    <input type="checkbox" id="homo-partial" style="margin-left:16px">
+    <label for="homo-partial">Partial (every 2nd char)</label>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="homoEncode()">▶ Substitute Glyphs</button>
+    <button class="btn btn-decode" onclick="homoDecode()">◀ Normalize Unicode</button>
+    <button class="btn btn-ghost" onclick="clearAll('homo-in','','homo-out')">✕ Clear</button>
+  </div>
+
+  <div class="output-box">
+    <div class="output-hdr">
+      <div class="output-hdr-label">
+        Output <span id="homo-chip" class="status-chip"></span>
+      </div>
+      <button class="btn btn-ghost" onclick="copyOut('homo-out')">⎘ Copy</button>
+    </div>
+    <div class="output-text muted-out" id="homo-out">// substituted text appears here</div>
+  </div>
+
+  <div class="mode-info" style="border-left-color:var(--accent2);margin-top:8px;">
+    <h3>Glyph Reference — visually identical pairs</h3>
+    <div class="glyph-row" id="glyph-preview"></div>
+  </div>
+</div>
+
+<!-- ══════════════ ZALGO ══════════════ -->
+<div class="panel" id="panel-zalgo">
+  <div class="mode-info">
+    <h3>Zalgo / Combining-Mark Corruptor</h3>
+    <p>Stacks invisible Unicode <code>combining diacritical marks</code> above, below, and through letters — creating the signature "cursed" or "glitched" text effect. Intensity is fully adjustable.</p>
+  </div>
+
+  <div class="grid2">
+    <div class="field full">
+      <div class="field-label">Input Text</div>
+      <textarea id="zalgo-in" placeholder="Text to corrupt…">The void stares back.</textarea>
+    </div>
+  </div>
+
+  <div class="slider-row">
+    <label>Up intensity</label>
+    <input type="range" min="0" max="15" value="4" id="zup" oninput="document.getElementById('zuv').textContent=this.value">
+    <span class="rval" id="zuv">4</span>
+  </div>
+  <div class="slider-row">
+    <label>Mid intensity</label>
+    <input type="range" min="0" max="8" value="1" id="zmid" oninput="document.getElementById('zmv').textContent=this.value">
+    <span class="rval" id="zmv">1</span>
+  </div>
+  <div class="slider-row">
+    <label>Down intensity</label>
+    <input type="range" min="0" max="15" value="5" id="zdn" oninput="document.getElementById('zdv').textContent=this.value">
+    <span class="rval" id="zdv">5</span>
+  </div>
+
+  <div class="chk-row">
+    <input type="checkbox" id="zalgo-rand" checked>
+    <label for="zalgo-rand">Randomize per character</label>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="zalgoEncode()">▶ Corrupt Text</button>
+    <button class="btn btn-decode" onclick="zalgoDecode()">◀ Strip Zalgo</button>
+    <button class="btn btn-ghost" onclick="clearAll('zalgo-in','','zalgo-out')">✕ Clear</button>
+  </div>
+
+  <div class="output-box">
+    <div class="output-hdr">
+      <div class="output-hdr-label">
+        Output <span id="zalgo-chip" class="status-chip"></span>
+      </div>
+      <button class="btn btn-ghost" onclick="copyOut('zalgo-out')">⎘ Copy</button>
+    </div>
+    <div class="output-text muted-out" id="zalgo-out">// corrupted text appears here</div>
+  </div>
+</div>
+
+<!-- ══════════════ WHITESPACE CIPHER ══════════════ -->
+<div class="panel" id="panel-ws">
+  <div class="mode-info">
+    <h3>Whitespace Unicode Cipher</h3>
+    <p>Encodes a binary message using two different Unicode space characters — <code>U+2003</code> (EM Space = 1) and <code>U+2002</code> (EN Space = 0) — as separators between words. Visually identical to normal spaces.</p>
+  </div>
+
+  <div class="grid2">
+    <div class="field">
+      <div class="field-label">Cover Sentence</div>
+      <textarea id="ws-cover" placeholder="Must have enough words to carry the binary…">The quick brown fox jumps over the lazy dog near the old river bank today</textarea>
+    </div>
+    <div class="field">
+      <div class="field-label">Secret (short)</div>
+      <textarea id="ws-secret" placeholder="Keep it short…" style="min-height:110px">hi</textarea>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="wsEncode()">▶ Embed in Spaces</button>
+    <button class="btn btn-decode" onclick="wsDecode()">◀ Read Spaces</button>
+    <button class="btn btn-ghost" onclick="clearAll('ws-cover','ws-secret','ws-out')">✕ Clear</button>
+  </div>
+
+  <div class="output-box">
+    <div class="output-hdr">
+      <div class="output-hdr-label">
+        Output <span id="ws-chip" class="status-chip"></span>
+      </div>
+      <button class="btn btn-ghost" onclick="copyOut('ws-out')">⎘ Copy</button>
+    </div>
+    <div class="output-text muted-out" id="ws-out">// output appears here</div>
+  </div>
+</div>
+
+<!-- ══════════════ INSPECTOR ══════════════ -->
+<div class="panel" id="panel-inspector">
+  <div class="mode-info">
+    <h3>Steganography Inspector</h3>
+    <p>Paste any suspicious text and the inspector will scan it for all known Unicode hiding techniques — zero-width chars, tag block characters, Zalgo marks, whitespace anomalies, and homoglyphs — and attempt to decode each one.</p>
+  </div>
+
+  <div class="field full" style="margin-bottom:14px;">
+    <div class="field-label">Paste Suspicious Text</div>
+    <textarea id="insp-in" style="min-height:140px" placeholder="Paste text here to scan for hidden content…"></textarea>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="inspect()">🔍 Scan for Hidden Data</button>
+    <button class="btn btn-ghost" onclick="document.getElementById('insp-in').value='';document.getElementById('insp-results').innerHTML=''">✕ Clear</button>
+  </div>
+
+  <div id="insp-results"></div>
+</div>
+
+</main>
+
+<!-- Footer -->
+<footer>
+  <div class="footer-credit">
+    <span>SMUGGLR</span> — Unicode &amp; Emoji Steganography Toolkit &nbsp;|&nbsp;
+    Made By <span>Aryan Giri</span> | <span>giriaryan694-a11y</span> &nbsp;|&nbsp;
+    100% Client-Side · No Data Leaves Your Browser
+  </div>
+</footer>
+
+<!-- Toast -->
+<div class="toast" id="toast">✓ Copied to clipboard</div>
+
+<script>
+/* ── Theme ── */
+function setTheme(t, el) {
+  document.documentElement.setAttribute('data-theme', t);
+  document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+  if (el) el.classList.add('active');
+}
+
+/* ── Tabs ── */
+let currentTab = 'zwsp';
+function switchTab(id, el) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tech-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  if (el) el.classList.add('active');
+  currentTab = id;
+}
+
+/* ── Helpers ── */
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function copyOut(id) {
+  const el = document.getElementById(id);
+  const txt = el.textContent;
+  if (!txt || txt.startsWith('//')) return;
+  navigator.clipboard.writeText(txt).then(() => toast('✓ Copied to clipboard'));
+}
+
+function clearAll(...ids) {
+  ids.forEach(id => {
+    if (id) {
+      const el = document.getElementById(id);
+      if (el) el.value !== undefined ? el.value = '' : el.textContent = '// cleared';
+    }
+  });
+}
+
+function setOut(id, text, chipId, status, chipLabel) {
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.classList.toggle('muted-out', !text || text.startsWith('//'));
+  if (chipId) {
+    const chip = document.getElementById(chipId);
+    chip.className = 'status-chip ' + (status || '');
+    chip.textContent = chipLabel || '';
+  }
+}
+
+/* ══════════════════════════════════════════
+   1. ZERO-WIDTH STEGANOGRAPHY
+   ══════════════════════════════════════════ */
+const ZW0 = '\u200B'; // bit 0
+const ZW1 = '\u200C'; // bit 1
+const ZWS = '\u200D'; // separator
+
+function zwEncode() {
+  const cover = document.getElementById('zw-cover').value.trim();
+  const secret = document.getElementById('zw-secret').value;
+  if (!cover || !secret) { setOut('zw-out','// both fields required','zw-chip','err','⚠ empty'); return; }
+
+  const bits = [...secret]
+    .map(c => c.charCodeAt(0).toString(2).padStart(8, '0'))
+    .join('');
+
+  const hidden = ZWS + bits.split('').map(b => b === '0' ? ZW0 : ZW1).join('') + ZWS;
+
+  // Insert after first char of cover
+  const result = cover[0] + hidden + cover.slice(1);
+  setOut('zw-out', result, 'zw-chip', 'ok', `✓ ${bits.length} bits hidden`);
+}
+
+function zwDecode() {
+  const text = document.getElementById('zw-cover').value ||
+               document.getElementById('zw-out').textContent;
+  const match = text.match(/\u200D([\u200B\u200C]+)\u200D/);
+  if (!match) {
+    setOut('zw-out', '// no hidden zero-width content detected', 'zw-chip', 'warn', '⚠ none found');
+    return;
+  }
+  const bits = match[1].split('').map(c => c === ZW0 ? '0' : '1').join('');
+  let result = '';
+  for (let i = 0; i + 8 <= bits.length; i += 8) {
+    result += String.fromCharCode(parseInt(bits.slice(i, i + 8), 2));
+  }
+  setOut('zw-out', result || '(empty)', 'zw-chip', 'ok', '✓ decoded');
+}
+
+/* ══════════════════════════════════════════
+   2. UNICODE TAG BLOCK
+   ══════════════════════════════════════════ */
+const TAG_BASE = 0xE0000;
+const TAG_CANCEL = String.fromCodePoint(0xE007F);
+
+function tagEncode() {
+  const carrier = document.getElementById('tag-cover').value.trim();
+  const secret = document.getElementById('tag-secret').value;
+  if (!carrier || !secret) { setOut('tag-out','// both fields required','tag-chip','err','⚠ empty'); return; }
+
+  const tags = [...secret]
+    .map(c => String.fromCodePoint(TAG_BASE + c.charCodeAt(0)))
+    .join('');
+
+  const result = carrier + '\u{E0001}' + tags + TAG_CANCEL;
+  setOut('tag-out', result, 'tag-chip', 'ok', `✓ ${secret.length} chars smuggled`);
+}
+
+function tagDecode() {
+  const text = document.getElementById('tag-cover').value ||
+               document.getElementById('tag-out').textContent;
+  let result = '';
+  for (const ch of text) {
+    const cp = ch.codePointAt(0);
+    if (cp > TAG_BASE && cp < 0xE007F) {
+      result += String.fromCharCode(cp - TAG_BASE);
+    }
+  }
+  if (!result) {
+    setOut('tag-out', '// no tag-block content detected', 'tag-chip', 'warn', '⚠ none found');
+  } else {
+    setOut('tag-out', result, 'tag-chip', 'ok', '✓ decoded');
+  }
+}
+
+/* ══════════════════════════════════════════
+   3. HOMOGLYPHS
+   ══════════════════════════════════════════ */
+const HOMO_MAP = {
+  'a':'\u0430','b':'\u0432','c':'\u0441','d':'\u0501',
+  'e':'\u0435','f':'\ua798','g':'\u0261','h':'\u04bb',
+  'i':'\u0456','j':'\u0458','k':'\u03ba','l':'\u04c0',
+  'm':'\u217c','n':'\u0578','o':'\u043e','p':'\u0440',
+  'q':'\u051b','r':'\u0433','s':'\u0455','t':'\u0442',
+  'u':'\u0432','v':'\u0475','w':'\u0561','x':'\u0445',
+  'y':'\u0443','z':'\u0290',
+  'A':'\u0410','B':'\u0412','C':'\u0421','D':'\u0500',
+  'E':'\u0415','F':'\ua797','G':'\u0262','H':'\u041d',
+  'I':'\u0406','J':'\u0408','K':'\u039a','M':'\u041c',
+  'N':'\u039d','O':'\u041e','P':'\u0420','S':'\u0405',
+  'T':'\u0422','X':'\u0425','Y':'\u0423','Z':'\u0396',
+  '0':'\u2070','3':'\u0437',
+};
+
+const HOMO_REVERSE = Object.fromEntries(Object.entries(HOMO_MAP).map(([k,v]) => [v,k]));
+
+function homoEncode() {
+  const text = document.getElementById('homo-in').value;
+  if (!text) { setOut('homo-out','// input required','homo-chip','err','⚠ empty'); return; }
+
+  const partial = document.getElementById('homo-partial').checked;
+  let count = 0;
+  const result = [...text].map((ch, i) => {
+    if (partial && i % 2 !== 0) return ch;
+    if (HOMO_MAP[ch]) { count++; return HOMO_MAP[ch]; }
+    return ch;
+  }).join('');
+
+  setOut('homo-out', result, 'homo-chip', 'ok', `✓ ${count} substitutions`);
+}
+
+function homoDecode() {
+  const text = document.getElementById('homo-in').value ||
+               document.getElementById('homo-out').textContent;
+  const result = [...text].map(ch => HOMO_REVERSE[ch] || ch).join('');
+  setOut('homo-out', result, 'homo-chip', 'ok', '✓ normalized');
+}
+
+// Build glyph preview
+window.addEventListener('DOMContentLoaded', () => {
+  const wrap = document.getElementById('glyph-preview');
+  const sample = ['a','e','o','c','p','s','x','y','A','O','P','C','H','M','B','E'];
+  sample.forEach(ch => {
+    if (HOMO_MAP[ch]) {
+      const pill = document.createElement('div');
+      pill.className = 'glyph-pill';
+      pill.title = `${ch} → U+${HOMO_MAP[ch].codePointAt(0).toString(16).toUpperCase().padStart(4,'0')}`;
+      pill.textContent = `${ch} → ${HOMO_MAP[ch]}`;
+      pill.onclick = () => {
+        const inp = document.getElementById('homo-in');
+        inp.value += ch;
+      };
+      wrap.appendChild(pill);
+    }
+  });
+});
+
+/* ══════════════════════════════════════════
+   4. ZALGO
+   ══════════════════════════════════════════ */
+const Z_UP = [
+  0x030d,0x030e,0x0304,0x0305,0x033f,0x0311,0x0306,0x0310,
+  0x0352,0x0357,0x0351,0x0307,0x0308,0x030a,0x0342,0x0343,
+  0x0344,0x034a,0x034b,0x034c,0x0303,0x0302,0x030c,0x0350,
+  0x0300,0x0301,0x030b,0x030f,0x0312,0x0313,0x0314,0x033d,
+  0x0309,0x0363,0x0364,0x0365,0x0366,0x0367,0x0368,0x0369,
+  0x036a,0x036b,0x036c,0x036d,0x036e,0x036f,0x033e,0x035b,
+];
+const Z_MID = [
+  0x0315,0x031b,0x0340,0x0341,0x0358,0x0321,0x0322,0x0327,
+  0x0328,0x0334,0x0335,0x0336,0x034f,0x035c,0x035d,0x035e,
+  0x035f,0x0360,0x0362,0x0338,0x0337,0x0361,0x0489,
+];
+const Z_DN = [
+  0x0316,0x0317,0x0318,0x0319,0x031c,0x031d,0x031e,0x031f,
+  0x0320,0x0324,0x0325,0x0326,0x0329,0x032a,0x032b,0x032c,
+  0x032d,0x032e,0x032f,0x0330,0x0331,0x0332,0x0333,0x0339,
+  0x033a,0x033b,0x033c,0x0345,0x0347,0x0348,0x0349,0x034d,
+  0x034e,0x0353,0x0354,0x0355,0x0356,0x0359,0x035a,0x0323,
+];
+
+function randFrom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+function zalgoChar(ch) {
+  const up = parseInt(document.getElementById('zup').value);
+  const mid = parseInt(document.getElementById('zmid').value);
+  const dn = parseInt(document.getElementById('zdn').value);
+  const rand = document.getElementById('zalgo-rand').checked;
+  let res = ch;
+  const u = rand ? Math.floor(Math.random() * (up + 1)) : up;
+  const m = rand ? Math.floor(Math.random() * (mid + 1)) : mid;
+  const d = rand ? Math.floor(Math.random() * (dn + 1)) : dn;
+  for (let i = 0; i < u; i++) res += String.fromCharCode(randFrom(Z_UP));
+  for (let i = 0; i < m; i++) res += String.fromCharCode(randFrom(Z_MID));
+  for (let i = 0; i < d; i++) res += String.fromCharCode(randFrom(Z_DN));
+  return res;
+}
+
+function zalgoEncode() {
+  const text = document.getElementById('zalgo-in').value;
+  if (!text) { setOut('zalgo-out','// input required','zalgo-chip','err','⚠ empty'); return; }
+  const result = [...text].map(ch => /[\s\n]/.test(ch) ? ch : zalgoChar(ch)).join('');
+  setOut('zalgo-out', result, 'zalgo-chip', 'ok', '✓ corrupted');
+}
+
+function zalgoDecode() {
+  const text = document.getElementById('zalgo-in').value ||
+               document.getElementById('zalgo-out').textContent;
+  // Strip all combining characters (U+0300–U+036F, U+0489, etc.)
+  const result = text.replace(/[\u0300-\u036f\u0483-\u0489\u1dc0-\u1dff\u20d0-\u20ff\ufe20-\ufe2f]/g, '');
+  setOut('zalgo-out', result, 'zalgo-chip', 'ok', '✓ stripped');
+}
+
+/* ══════════════════════════════════════════
+   5. WHITESPACE CIPHER
+   ══════════════════════════════════════════ */
+const WS_0 = '\u2002'; // EN Space = 0
+const WS_1 = '\u2003'; // EM Space = 1
+const WS_NORMAL = ' ';
+
+function wsEncode() {
+  const cover = document.getElementById('ws-cover').value.trim();
+  const secret = document.getElementById('ws-secret').value;
+  if (!cover || !secret) { setOut('ws-out','// both fields required','ws-chip','err','⚠ empty'); return; }
+
+  const bits = [...secret].map(c => c.charCodeAt(0).toString(2).padStart(8,'0')).join('');
+  const words = cover.split(' ');
+
+  if (words.length - 1 < bits.length) {
+    setOut('ws-out', '// cover text too short — need ' + bits.length + ' word-gaps, have ' + (words.length-1), 'ws-chip','err','⚠ too short');
+    return;
+  }
+
+  let result = words[0];
+  for (let i = 0; i < bits.length; i++) {
+    result += (bits[i] === '1' ? WS_1 : WS_0) + words[i + 1];
+  }
+  for (let i = bits.length + 1; i < words.length; i++) {
+    result += WS_NORMAL + words[i];
+  }
+  setOut('ws-out', result, 'ws-chip', 'ok', `✓ ${bits.length} bits embedded`);
+}
+
+function wsDecode() {
+  const text = document.getElementById('ws-cover').value ||
+               document.getElementById('ws-out').textContent;
+  const bits = [];
+  for (const ch of text) {
+    if (ch === WS_0) bits.push('0');
+    else if (ch === WS_1) bits.push('1');
+  }
+  if (bits.length === 0) {
+    setOut('ws-out','// no whitespace encoding detected','ws-chip','warn','⚠ none found');
+    return;
+  }
+  let result = '';
+  for (let i = 0; i + 8 <= bits.length; i += 8) {
+    result += String.fromCharCode(parseInt(bits.slice(i, i + 8).join(''), 2));
+  }
+  setOut('ws-out', result || '(empty)', 'ws-chip', 'ok', '✓ decoded');
+}
+
+/* ══════════════════════════════════════════
+   6. INSPECTOR
+   ══════════════════════════════════════════ */
+function inspect() {
+  const text = document.getElementById('insp-in').value;
+  if (!text) return;
+  const results = [];
+
+  // Check Zero-Width
+  const zwMatch = text.match(/\u200D([\u200B\u200C]+)\u200D/);
+  if (zwMatch) {
+    const bits = zwMatch[1].split('').map(c => c === ZW0 ? '0' : '1').join('');
+    let decoded = '';
+    for (let i = 0; i + 8 <= bits.length; i += 8) {
+      decoded += String.fromCharCode(parseInt(bits.slice(i, i + 8), 2));
+    }
+    results.push({ type: 'Zero-Width Steganography', found: true,
+      info: `${bits.length} hidden bits detected`,
+      decoded: decoded });
+  } else {
+    const zwCount = (text.match(/[\u200B\u200C\u200D]/g) || []).length;
+    if (zwCount > 0) {
+      results.push({ type: 'Zero-Width Characters', found: true,
+        info: `${zwCount} zero-width chars found (no standard encoding detected)`,
+        decoded: null });
+    } else {
+      results.push({ type: 'Zero-Width Steganography', found: false, info: 'None detected' });
+    }
+  }
+
+  // Check Tag Block
+  let tagDecoded = '';
+  for (const ch of text) {
+    const cp = ch.codePointAt(0);
+    if (cp > TAG_BASE && cp < 0xE007F) tagDecoded += String.fromCharCode(cp - TAG_BASE);
+  }
+  if (tagDecoded) {
+    results.push({ type: 'Unicode Tag Block (E0000)', found: true,
+      info: `${tagDecoded.length} tag characters extracted`,
+      decoded: tagDecoded });
+  } else {
+    results.push({ type: 'Unicode Tag Block', found: false, info: 'None detected' });
+  }
+
+  // Check Zalgo
+  const combiningCount = (text.match(/[\u0300-\u036f\u0483-\u0489\u1dc0-\u1dff\u20d0-\u20ff]/g) || []).length;
+  if (combiningCount > 0) {
+    const stripped = text.replace(/[\u0300-\u036f\u0483-\u0489\u1dc0-\u1dff\u20d0-\u20ff\ufe20-\ufe2f]/g, '');
+    results.push({ type: 'Zalgo / Combining Marks', found: true,
+      info: `${combiningCount} combining characters found`,
+      decoded: stripped });
+  } else {
+    results.push({ type: 'Zalgo / Combining Marks', found: false, info: 'None detected' });
+  }
+
+  // Check Whitespace
+  const wsBits = [];
+  for (const ch of text) {
+    if (ch === WS_0) wsBits.push('0');
+    else if (ch === WS_1) wsBits.push('1');
+  }
+  if (wsBits.length >= 8) {
+    let wsDecoded = '';
+    for (let i = 0; i + 8 <= wsBits.length; i += 8) {
+      wsDecoded += String.fromCharCode(parseInt(wsBits.slice(i, i + 8).join(''), 2));
+    }
+    results.push({ type: 'Whitespace Cipher (EN/EM Space)', found: true,
+      info: `${wsBits.length} encoded space-bits found`,
+      decoded: wsDecoded });
+  } else {
+    results.push({ type: 'Whitespace Cipher', found: false, info: 'None detected' });
+  }
+
+  // Check Homoglyphs
+  const homoFound = [...text].filter(ch => HOMO_REVERSE[ch]).length;
+  if (homoFound > 0) {
+    const normalized = [...text].map(ch => HOMO_REVERSE[ch] || ch).join('');
+    results.push({ type: 'Homoglyph Substitution', found: true,
+      info: `${homoFound} non-Latin lookalike chars found`,
+      decoded: normalized });
+  } else {
+    results.push({ type: 'Homoglyph Substitution', found: false, info: 'None detected' });
+  }
+
+  // Render
+  const container = document.getElementById('insp-results');
+  container.innerHTML = '';
+
+  const foundCount = results.filter(r => r.found).length;
+  const summary = document.createElement('div');
+  summary.style.cssText = `font-family:'Share Tech Mono',monospace;font-size:0.78rem;
+    color:var(--muted);margin-bottom:12px;`;
+  summary.textContent = `Scan complete — ${foundCount} technique(s) detected across ${results.length} checks.`;
+  container.appendChild(summary);
+
+  results.forEach(r => {
+    const card = document.createElement('div');
+    card.className = 'insp-card ' + (r.found ? 'found' : 'clean');
+
+    const title = document.createElement('div');
+    title.className = 'insp-title';
+
+    const badge = document.createElement('span');
+    badge.className = 'badge' + (r.found ? '' : ' ok');
+    badge.textContent = r.found ? '⚠ DETECTED' : '✓ CLEAN';
+    title.appendChild(badge);
+
+    const name = document.createElement('span');
+    name.style.cssText = 'font-family:"Share Tech Mono",monospace;font-size:0.73rem;letter-spacing:0.08em;text-transform:uppercase;';
+    name.textContent = r.type;
+    title.appendChild(name);
+    card.appendChild(title);
+
+    const info = document.createElement('div');
+    info.className = 'insp-info';
+    info.textContent = r.info;
+    card.appendChild(info);
+
+    if (r.decoded) {
+      const dec = document.createElement('div');
+      dec.className = 'insp-decoded';
+      dec.textContent = '→ ' + r.decoded;
+      card.appendChild(dec);
+    }
+
+    container.appendChild(card);
+  });
+}
+</script>
+</body>
+</html>
