@@ -1,6 +1,6 @@
 # SMUGGLR
 
-Invisible Unicode Payload Toolkit 🔓
+Invisible Unicode Payload Toolkit 🔓🧩
 
 SMUGGLR is a fully client-side Unicode steganography playground built for security researchers, red teamers, detection engineers, CTF players, and curious developers exploring text obfuscation techniques.
 
@@ -40,32 +40,30 @@ Hides binary-encoded payloads using invisible Unicode characters:
 
 The payload is stitched invisibly inside cover text.
 
+---
+
 ### 2. Tag Block Encoding
 
-Uses the Unicode Tags block (`U+E0000`) to embed hidden text.
+Uses the Unicode Tags block (U+E0000) to embed hidden text.
 
-This is similar to techniques seen in:
+Inspired by:
 
 * AI watermarking research
 * Unicode metadata tricks
 * Invisible annotation systems
 
-Completely invisible in most:
+Invisible in most:
 
 * Browsers
 * Chats
 * Documents
 * Markdown renderers
 
+---
+
 ### 3. Homoglyph Obfuscation
 
-Swaps Latin characters with visually identical:
-
-* Cyrillic
-* Greek
-* Unicode lookalikes
-
-Examples:
+Swaps Latin characters with visually identical Unicode lookalikes:
 
 | Normal | Homoglyph |
 | ------ | --------- |
@@ -74,33 +72,35 @@ Examples:
 | p      | р         |
 | c      | с         |
 
-Useful for demonstrating:
+Use cases:
 
-* Filter bypasses
-* Phishing risks
-* Detection evasion
+* Filter bypass demonstrations
+* Phishing simulation
+* Detection evasion analysis
 * Unicode normalization issues
+
+---
 
 ### 4. Zalgo Generator
 
-Adds combining Unicode marks:
+Adds combining Unicode marks above/below/through text.
 
-* Above text
-* Below text
-* Through text
+Includes intensity controls for controlled chaos.
 
-Includes adjustable intensity controls.
+---
 
 ### 5. Whitespace Cipher
 
-Encodes binary using:
+Encodes binary using invisible spacing:
 
-* EM Space (`U+2003`)
-* EN Space (`U+2002`)
+* EM Space (U+2003)
+* EN Space (U+2002)
 
-The encoded payload hides between words while remaining visually invisible.
+Payload hides between words.
 
-### 6. Inspector
+---
+
+### 6. Inspector 🔍
 
 Paste suspicious text and SMUGGLR scans for:
 
@@ -110,7 +110,7 @@ Paste suspicious text and SMUGGLR scans for:
 * Zalgo combining marks
 * Whitespace binary ciphers
 
-Automatic decoding included.
+Includes automatic decoding.
 
 ---
 
@@ -120,10 +120,10 @@ Automatic decoding included.
 * ☀️ Light Theme
 * 👁 Eye-Saver Theme
 * Sticky technique selector navbar
-* Encode + Decode actions per panel
+* Encode / Decode panels
 * One-click copy output
 * Animated glitch logo
-* Scanline overlay terminal aesthetic
+* Scanline terminal aesthetic
 * Responsive browser UI
 
 ---
@@ -132,8 +132,8 @@ Automatic decoding included.
 
 Unicode abuse is massively underestimated.
 
-Most developers assume text is harmless.
-In reality, invisible Unicode characters can:
+Most systems assume text is harmless.
+In reality, invisible Unicode can:
 
 * Alter parsing behavior
 * Break moderation systems
@@ -209,20 +209,20 @@ SMUGGLR is designed as:
 * A Unicode security lab
 * A detection-testing utility
 
-The goal is understanding Unicode abuse — not malicious deployment.
+Goal: understand Unicode abuse, not enable misuse.
 
 ---
 
 # Security Notes
 
-Some techniques demonstrated here may trigger:
+Some techniques demonstrated may trigger:
 
 * Spam filters
 * Unicode sanitizers
 * Security tooling
 * Content moderation systems
 
-This project is intended for:
+Intended for:
 
 * Educational use
 * Research
@@ -232,8 +232,6 @@ This project is intended for:
 ---
 
 # Future Ideas
-
-Potential future additions:
 
 * Bidirectional override attacks
 * UTF-8 corruption demos
@@ -251,6 +249,18 @@ Made By Aryan Giri
 
 GitHub: giriaryan694-a11y
 
+---
+
+# Emoji Smuggler Add-on 😈🕶️
+
+An experimental extension concept for SMUGGLR that encodes hidden payloads inside emoji sequences and variation selectors.
+
+Use cases:
+
+* Emoji-based steganography
+* Cross-platform invisibility testing
+* Chat platform parsing analysis
+* LLM tokenization behavior research
 
 ---
 
@@ -258,4 +268,4 @@ GitHub: giriaryan694-a11y
 
 Text is an attack surface.
 
-Unicode is bigger, weirder, and more dangerous than most systems assume. 🎯
+Unicode is bigger, weirder, and more dangerous than most systems assume. 🎯🔓
